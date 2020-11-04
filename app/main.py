@@ -2,18 +2,23 @@
 
 from datetime import datetime, timedelta
 from typing import Optional
+from os import getenv
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
 # TODO: zamenjaj to s skrito spremenljivko, ki se prilepi med buildanjem
-SECRET_KEY = "9f86047690f11729af7c37eac5cb75d30ca597af7d145407664a82c7cb81915c"
+# SECRET_KEY = "9f86047690f11729af7c37eac5cb75d30ca597af7d145407664a82c7cb81915c"
+SECRET_KEY = getenv("OAUTH_SIGN_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+if (SECRET_KEY == None):
+    print("Please define OAuth signing key!")
+    exit(-1)
 
 # placeholder, za zamenjati s produkcijsko bazo
 fake_users_db = {
@@ -93,7 +98,7 @@ def get_user_sensitive(uid: int) -> Optional[UserSensitive]:
         return UserSensitive(**user_dict)
 
 
-def get_user(uid: int) -> Optional[UserSensitive]:
+def get_user(uid: int) -> Optional[User]:
     if uid in fake_users_db:
         user_dict = fake_users_db[uid]
         return User(**user_dict)
@@ -154,6 +159,21 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/users/me/", response_model = User)
-async def read_users_me(current_user: User = Depends(get_user_from_token)):
+@app.get("/me", response_model = User)
+async def read_my_data(current_user: User = Depends(get_user_from_token)):
     return current_user
+
+
+@app.post("/user", response_model = User)
+async def read_token_data(token: str = Form(...), current_user: User = Depends(get_user_from_token)):
+    print("yay")
+    try:
+        print("yey")
+        user = await get_user_from_token(token)
+        print("yoy", user)
+        return user
+    except HTTPException:
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail = "Invalid token",
+        )
