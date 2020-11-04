@@ -166,12 +166,8 @@ async def read_my_data(current_user: User = Depends(get_user_from_token)):
 
 @app.post("/user", response_model = User)
 async def read_token_data(token: str = Form(...), current_user: User = Depends(get_user_from_token)):
-    print("yay")
     try:
-        print("yey")
-        user = await get_user_from_token(token)
-        print("yoy", user)
-        return user
+        return await get_user_from_token(token)
     except HTTPException:
         raise HTTPException(
             status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
