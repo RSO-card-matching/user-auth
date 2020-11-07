@@ -25,6 +25,8 @@ RUN pip install python-multipart
 RUN pip install python-jose[cryptography]
 RUN pip install passlib[bcrypt]
 
+RUN pip install SQLAlchemy
+
 # COPY --from=builder /usr/local/lib /usr/local
 
 # # ENV PATH=/root/.local:$PATH
