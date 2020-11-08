@@ -9,4 +9,3 @@
 
 - register a new user
 - change password
-- connect a working database

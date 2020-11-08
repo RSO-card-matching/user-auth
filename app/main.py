@@ -1,5 +1,4 @@
 # pylint: disable=no-name-in-module
-# pylint: disable=anomalous-backslash-in-string
 
 from datetime import datetime, timedelta
 from typing import Optional
@@ -12,13 +11,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from .models import Token, TokenData, User, UserSensitive
-from .database import SessionLocal, get_user_by_uid, get_user_by_uid_sensitive
-from .database import initBase, get_user_by_username, get_user_by_username_sensitive
-from .database import get_all_users
+from . import models, database
 
-# TODO: zamenjaj to s skrito spremenljivko, ki se prilepi med buildanjem
-# SECRET_KEY = "9f86047690f11729af7c37eac5cb75d30ca597af7d145407664a82c7cb81915c"
 SECRET_KEY = getenv("OAUTH_SIGN_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -29,60 +23,25 @@ if (SECRET_KEY == None):
 
 # fastAPI dependecy magic
 def get_db():
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
 # init testing DB
-initBase(SessionLocal())
-
-# # placeholder, za zamenjati s produkcijsko bazo
-# fake_users_db = {
-#     0: {
-#         "username": "ana",
-#         "uid": 0,
-#         "access_level": "admin",
-#         "full_name": "Ana Agrež",
-#         "email": "ana.agrez@example.com",
-#         "hashed_password": "$2b$12$kUnbsxhy3ns9e0d//MWxQuKYphkusjav6NBwqX/lK2QlY7Yzt8sHS"  # "njah"
-#     },
-#     1: {
-#         "username": "berta",
-#         "uid": 1,
-#         "access_level": "user",
-#         "full_name": "Berta Bohak",
-#         "email": "berta.bohak@example.com",
-#         "hashed_password": "$2b$12$i14mgMTbkf.O22Qnkz6AfOAJ9xendDRTOHEc8ey90Z9QQfwSOuy6."  # "njeh"
-#     },
-#     2: {
-#         "username": "cilka",
-#         "uid": 2,
-#         "access_level": "user",
-#         "full_name": "Cilka Cijan",
-#         "email": "cilka.cijan@example.com",
-#         "hashed_password": "$2b$12$hGUiErRdzwdD3LdCd0Ugj.16lawsxJas2hO0.P/MI0NdSXGkAYJ06"  # "njoh"
-#     }
-# }
-
-# # placeholder, za zamenjati s produkcijsko bazo
-# uname_to_id = {
-#     "ana": 0,
-#     "berta": 1,
-#     "cilka": 2
-# }
+database.initBase(database.SessionLocal())
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes = ["bcrypt"], deprecated = "auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="request_token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "request_token")
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex = "http:\/\/localhost:.*",
+    allow_origin_regex = r"http:\/\/localhost:.*",
     allow_credentials = True,
     allow_methods = ["*"],
     allow_headers = ["*"],
@@ -96,11 +55,11 @@ def get_password_hash(password: str) -> bool:
     return pwd_context.hash(password)
 
 
-def authenticate_user(db: Session, username: str, password: str) -> Optional[UserSensitive]:
-    user = get_user_by_username_sensitive(db, username)
+def authenticate_user(db: Session, username: str, password: str) -> Optional[models.UserSensitive]:
+    user = database.get_user_by_username_sensitive(db, username)
     if not verify_password(password, user.hashed_password):
         return None
-    return UserSensitive(**user.__dict__)
+    return models.UserSensitive(**user.__dict__)
 
 
 def create_access_token(data: dict, expires_delta: timedelta):
@@ -112,7 +71,7 @@ def create_access_token(data: dict, expires_delta: timedelta):
 
 
 async def get_current_user_from_token(token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)) -> User:
+    db: Session = Depends(get_db)) -> models.User:
     credentials_exception = HTTPException(
         status_code = status.HTTP_401_UNAUTHORIZED,
         detail = "Could not validate credentials",
@@ -123,16 +82,16 @@ async def get_current_user_from_token(token: str = Depends(oauth2_scheme),
         uid: Optional[int] = int(payload.get("sub"))
         if uid is None:
             raise credentials_exception
-        token_data = TokenData(uid = uid)
+        token_data = models.TokenData(uid = uid)
     except JWTError:
         raise credentials_exception
-    user = get_user_by_uid(db, token_data.uid)
+    user = database.get_user_by_uid(db, token_data.uid)
     if user is None:
         raise credentials_exception
     return user
 
 
-def get_user_from_token(db: Session, token: str) -> User:
+def get_user_from_token(db: Session, token: str) -> models.User:
     credentials_exception = HTTPException(
         status_code = status.HTTP_401_UNAUTHORIZED,
         detail = "Could not validate credentials",
@@ -143,17 +102,17 @@ def get_user_from_token(db: Session, token: str) -> User:
         uid: Optional[int] = int(payload.get("sub"))
         if uid is None:
             raise credentials_exception
-        token_data = TokenData(uid = uid)
+        token_data = models.TokenData(uid = uid)
     except JWTError:
         raise credentials_exception
-    user = get_user_by_uid(db, token_data.uid)
+    user = database.get_user_by_uid(db, token_data.uid)
     if user is None:
         raise credentials_exception
     return user
 
 
 
-@app.post("/request_token", response_model = Token)
+@app.post("/request_token", response_model = models.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
@@ -171,15 +130,15 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/me", response_model = User)
-async def read_my_data(current_user: User = Depends(get_current_user_from_token)):
+@app.get("/me", response_model = models.User)
+async def read_my_data(current_user: models.User = Depends(get_current_user_from_token)):
     return current_user
 
 
-@app.post("/user", response_model = User)
+@app.post("/user", response_model = models.User)
 async def read_token_data(token: str = Form(...),
-    current_user: User = Depends(get_current_user_from_token)):
-    db = SessionLocal()
+    current_user: models.User = Depends(get_current_user_from_token)):
+    db = database.SessionLocal()
     try:
         return get_user_from_token(db, token)
     except HTTPException:
@@ -190,7 +149,8 @@ async def read_token_data(token: str = Form(...),
     finally:
         db.close()
 
+
 @app.get("/all_users", response_model = dict)
-async def return_all_users(current_user: User = Depends(get_current_user_from_token),
+async def return_all_users(current_user: models.User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db)):
-    return get_all_users(db)
+    return database.get_all_users(db)
