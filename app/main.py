@@ -1,4 +1,5 @@
 # pylint: disable=no-name-in-module
+# pylint: disable=anomalous-backslash-in-string
 
 from datetime import datetime, timedelta
 from typing import Optional
@@ -6,6 +7,7 @@ from os import getenv
 
 from fastapi import Depends, FastAPI, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -77,6 +79,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="request_token")
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex = "http:\/\/localhost:.*",
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
