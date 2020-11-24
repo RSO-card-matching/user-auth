@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   labels:
     app: user-auth
-  name: user-auth
+  name: user-auth-deployment
   namespace: default
 spec:
   progressDeadlineSeconds: 600
@@ -14,8 +14,8 @@ spec:
       app: user-auth
   strategy:
     rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
+      maxSurge: 1
+      maxUnavailable: 1
     type: RollingUpdate
   template:
     metadata:
@@ -37,13 +37,13 @@ spec:
           httpGet:
             path: /health/live
             port: server
-          initialDelaySeconds: 20
+          initialDelaySeconds: 10
           periodSeconds: 3
         readinessProbe:
           httpGet:
             path: /health/ready
             port: server
-          initialDelaySeconds: 20
+          initialDelaySeconds: 10
           periodSeconds: 3
         ports:
         - containerPort: 8080
@@ -54,3 +54,18 @@ spec:
       schedulerName: default-scheduler
       securityContext: {}
       terminationGracePeriodSeconds: 30
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-auth
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: server
+  selector:
+    app: user-auth
