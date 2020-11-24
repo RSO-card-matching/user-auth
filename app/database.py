@@ -79,5 +79,5 @@ def get_user_by_username(db: Session, username: str) -> Optional[models.UserSens
     return None
 
 
-def get_all_users(db: Session) -> dict:
-    return dict(db.query(models.UserModel.uid, models.UserModel.username).all())
+def get_all_users(db: Session) -> list:
+    return [models.User(**u.__dict__) for u in db.query(models.UserModel).all()]

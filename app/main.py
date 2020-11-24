@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from os import getenv
 
-from fastapi import Depends, FastAPI, Form, HTTPException, status
+from fastapi import Depends, FastAPI, Form, HTTPException, Path, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
@@ -35,7 +35,7 @@ database.initBase(database.SessionLocal())
 
 pwd_context = CryptContext(schemes = ["bcrypt"], deprecated = "auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "request_token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "tokens")
 
 app = FastAPI()
 
@@ -112,7 +112,7 @@ def get_user_from_token(db: Session, token: str) -> models.User:
 
 
 
-@app.post("/request_token", response_model = models.Token)
+@app.post("/tokens", response_model = models.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
@@ -130,27 +130,44 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/me", response_model = models.User)
+# @app.post("/user", response_model = models.User)
+# async def read_token_data(token: str = Form(...),
+#     current_user: models.User = Depends(get_current_user_from_token)):
+#     db = database.SessionLocal()
+#     try:
+#         return get_user_from_token(db, token)
+#     except HTTPException:
+#         raise HTTPException(
+#             status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+#             detail = "Invalid token",
+#         )
+#     finally:
+#         db.close()
+
+
+@app.get("/users", response_model = list)
+async def return_all_users(current_user: models.User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db)):
+    return database.get_all_users(db)
+
+
+@app.get("/users/me", response_model = models.User)
 async def read_my_data(current_user: models.User = Depends(get_current_user_from_token)):
     return current_user
 
 
-@app.post("/user", response_model = models.User)
-async def read_token_data(token: str = Form(...),
-    current_user: models.User = Depends(get_current_user_from_token)):
-    db = database.SessionLocal()
-    try:
-        return get_user_from_token(db, token)
-    except HTTPException:
-        raise HTTPException(
-            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail = "Invalid token",
-        )
-    finally:
-        db.close()
-
-
-@app.get("/all_users", response_model = dict)
-async def return_all_users(current_user: models.User = Depends(get_current_user_from_token),
+@app.get("/users/{user_id}", response_model = dict)
+async def return_specific_user(current_user: models.User = Depends(get_current_user_from_token),
+    user_id: int = Path(...),
     db: Session = Depends(get_db)):
-    return database.get_all_users(db)
+    return database.get_user_by_uid(db, user_id)
+
+
+@app.get("/health/live", response_model = str)
+async def liveness_check():
+    return "OK"
+
+
+@app.get("/health/ready", response_model = str)
+async def readiness_check():
+    return "OK"  # TODO: čekiranje baze or sth?

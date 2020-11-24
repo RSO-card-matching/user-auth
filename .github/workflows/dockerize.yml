@@ -28,4 +28,4 @@ jobs:
       with:
         file: ./Dockerfile
         push: true
-        tags: cardmatching/user-auth:${{ steps.time.outputs.time }}
+        tags: cardmatching/user-auth:${{ steps.time.outputs.time }},cardmatching/user-auth:latest
