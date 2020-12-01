@@ -145,18 +145,23 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 #         db.close()
 
 
-@app.get("/users", response_model = list)
+@app.get("/v1/users", response_model = list)
 async def return_all_users(current_user: models.User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db)):
     return database.get_all_users(db)
 
 
-@app.get("/users/me", response_model = models.User)
+@app.get("/v1/users/noauth", response_model = list)
+async def return_all_users_noauth(db: Session = Depends(get_db)):
+    return database.get_all_users(db)
+
+
+@app.get("/v1/users/me", response_model = models.User)
 async def read_my_data(current_user: models.User = Depends(get_current_user_from_token)):
     return current_user
 
 
-@app.get("/users/{user_id}", response_model = dict)
+@app.get("/v1/users/{user_id}", response_model = dict)
 async def return_specific_user(current_user: models.User = Depends(get_current_user_from_token),
     user_id: int = Path(...),
     db: Session = Depends(get_db)):
@@ -171,3 +176,27 @@ async def liveness_check():
 @app.get("/health/ready", response_model = str)
 async def readiness_check():
     return "OK"  # TODO: čekiranje baze or sth?
+
+
+@app.get("/demo", response_model = dict)
+async def mejnik_demo():
+    return {
+        "clani": [
+            "br4754",
+            "jz4314"
+        ],
+        "opis_projekta": "Nas projekt implementira aplikacijo za trgovanje z zbirateljskimi kartami.",
+        "mikrostoritve": [
+            f"{getenv('CARDDATA_IP')}/v1/cards/noauth",
+            f"{getenv('USERAUTH_IP')}/v1/users/noauth"
+        ],
+        "github": [
+            "https://github.com/RSO-card-matching/card-data",
+            "https://github.com/RSO-card-matching/user-auth"
+        ],
+        "travis": [],
+        "dockerhub": [
+            "https://hub.docker.com/r/cardmatching/card-data",
+            "https://hub.docker.com/r/cardmatching/user-auth"
+        ]
+    }
