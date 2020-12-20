@@ -30,7 +30,7 @@ def get_db():
         db.close()
 
 # init testing DB
-database.initBase(database.SessionLocal())
+# database.initBase(database.SessionLocal())
 
 
 pwd_context = CryptContext(schemes = ["bcrypt"], deprecated = "auto")
