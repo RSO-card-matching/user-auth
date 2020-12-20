@@ -26,6 +26,7 @@ RUN pip install python-jose[cryptography]
 RUN pip install passlib[bcrypt]
 
 RUN pip install SQLAlchemy
+RUN pip install psycopg2
 
 # COPY --from=builder /usr/local/lib /usr/local
 
