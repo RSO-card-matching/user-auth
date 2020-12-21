@@ -57,6 +57,10 @@ def get_password_hash(password: str) -> bool:
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[models.UserSensitive]:
     user = database.get_user_by_username_sensitive(db, username)
+    if user == None:
+        return None
+    if user.access_level == "system":
+        return None
     if not verify_password(password, user.hashed_password):
         return None
     return models.UserSensitive(**user.__dict__)
@@ -151,11 +155,6 @@ async def return_all_users(current_user: models.User = Depends(get_current_user_
     return database.get_all_users(db)
 
 
-@app.get("/v1/users/noauth", response_model = list)
-async def return_all_users_noauth(db: Session = Depends(get_db)):
-    return database.get_all_users(db)
-
-
 @app.get("/v1/users/me", response_model = models.User)
 async def read_my_data(current_user: models.User = Depends(get_current_user_from_token)):
     return current_user
@@ -168,6 +167,79 @@ async def return_specific_user(current_user: models.User = Depends(get_current_u
     return database.get_user_by_uid(db, user_id)
 
 
+@app.post("/v1/users", response_model = None)
+async def create_new_user(user: models.UserNew, db: Session = Depends(get_db)):
+    # check if username can be taken
+    if user.username == "":
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail = "Username must not be empty"
+        )
+    if database.get_user_by_username(db, user.username) != None:
+        raise HTTPException(
+            status_code = status.HTTP_409_CONFLICT,
+            detail = "Username already exists"
+        )
+    # check if password is not empty
+    if user.password == "":
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail = "Password must not be empty"
+        )
+    # hash the password
+    hashed_pass = get_password_hash(user.password)
+    # save the user
+    database.insert_new_user(db, user, hashed_pass)
+
+
+@app.patch("/v1/users", response_model = None)
+async def update_user_data(to_update: models.UserUpdate,
+    current_user: models.User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db)):
+    # check password
+    if to_update.password != None:
+        if to_update.password == "":
+            raise HTTPException(
+                status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail = "Password must not be empty"
+            )
+        to_update.password = get_password_hash(to_update.password)
+    database.update_user(db, current_user.uid, to_update.password, to_update.email,
+        to_update.full_name)
+
+
+@app.patch("/v1/users/{user_id}", response_model = None)
+async def update_other_user_data(to_update: models.UserUpdate,
+    user_id: int = Path(Ellipsis),
+    current_user: models.User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db)):
+    # get user from DB
+    modified_user = database.get_user_by_uid(db, user_id);
+    if modified_user == None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "User with given ID not found"
+        )
+    # check privilege
+    if (modified_user.access_level == "system"
+        or modified_user.access_level == "admin" and current_user.access_level != "system"
+        or current_user.access_level not in ["system", "admin"]):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Not authorized to update given user"
+        )
+    # check password
+    if to_update.password != None:
+        if to_update.password == "":
+            raise HTTPException(
+                status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail = "Password must not be empty"
+            )
+        to_update.password = get_password_hash(to_update.password)
+    database.update_user(db, user_id, to_update.password, to_update.email,
+        to_update.full_name)
+
+
 @app.get("/health/live", response_model = str)
 async def liveness_check():
     return "OK"
@@ -178,6 +250,7 @@ async def readiness_check():
     return "OK"  # TODO: čekiranje baze or sth?
 
 
+# za mejnik
 @app.get("/demo", response_model = dict)
 async def mejnik_demo():
     return {
@@ -200,3 +273,8 @@ async def mejnik_demo():
             "https://hub.docker.com/r/cardmatching/user-auth"
         ]
     }
+
+
+@app.get("/v1/users/noauth", response_model = list)
+async def return_all_users_noauth(db: Session = Depends(get_db)):
+    return database.get_all_users(db)

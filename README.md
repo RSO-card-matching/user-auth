@@ -4,8 +4,9 @@
 
 - password login (JWT token provider)
 - user info from token
+- register a new user
+- update info, password
 
 ## To implement
 
-- register a new user
-- change password
+- Google login

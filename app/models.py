@@ -31,6 +31,17 @@ class User(BaseModel):
 class UserSensitive(User):
     hashed_password: str
 
+class UserNew(BaseModel):
+    username: str
+    password: str
+    email: str
+    full_name: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    password: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+
 class UserModel(Base):
     __tablename__ = "users"
     uid = Column(Integer, primary_key = True, index = True)
