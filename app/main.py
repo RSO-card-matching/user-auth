@@ -134,21 +134,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# @app.post("/user", response_model = models.User)
-# async def read_token_data(token: str = Form(...),
-#     current_user: models.User = Depends(get_current_user_from_token)):
-#     db = database.SessionLocal()
-#     try:
-#         return get_user_from_token(db, token)
-#     except HTTPException:
-#         raise HTTPException(
-#             status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-#             detail = "Invalid token",
-#         )
-#     finally:
-#         db.close()
-
-
 @app.get("/v1/users", response_model = list)
 async def return_all_users(current_user: models.User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db)):
@@ -214,7 +199,7 @@ async def update_other_user_data(to_update: models.UserUpdate,
     current_user: models.User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db)):
     # get user from DB
-    modified_user = database.get_user_by_uid(db, user_id);
+    modified_user = database.get_user_by_uid(db, user_id)
     if modified_user == None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
@@ -248,6 +233,7 @@ async def liveness_check():
 @app.get("/health/ready", response_model = str)
 async def readiness_check():
     return "OK"  # TODO: čekiranje baze or sth?
+
 
 
 # za mejnik
