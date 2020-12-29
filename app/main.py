@@ -47,6 +47,14 @@ app.add_middleware(
     allow_headers = ["*"],
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex = r"https:\/\/.*cardmatching.ovh.*",
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
