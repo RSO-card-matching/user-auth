@@ -29,16 +29,6 @@ spec:
             configMapKeyRef:
               key: OAUTH_SIGN_KEY
               name: card-matching-cluster-configmap
-        - name: CARDDATA_IP
-          valueFrom:
-            configMapKeyRef:
-              key: CARDDATA_IP
-              name: card-matching-cluster-configmap
-        - name: USERAUTH_IP
-          valueFrom:
-            configMapKeyRef:
-              key: USERAUTH_IP
-              name: card-matching-cluster-configmap
         - name: DATABASE_IP
           valueFrom:
             configMapKeyRef:
