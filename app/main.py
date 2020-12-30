@@ -238,9 +238,17 @@ async def liveness_check():
     return "OK"
 
 
-@app.get("/health/ready", response_model = str)
-async def readiness_check():
-    return "OK"  # TODO: čekiranje baze or sth?
+@app.get("/health/ready", response_model = dict)
+async def readiness_check(db: Session = Depends(get_db)):
+    if database.test_connection(db):
+        return {
+            "database": "OK"
+        }
+    else:
+        raise HTTPException(
+            status_code = status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail = "Database down",
+        )
 
 
 

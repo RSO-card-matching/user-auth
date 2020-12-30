@@ -3,6 +3,7 @@ from os import getenv
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.exc import OperationalError
 
 from . import models
 
@@ -13,7 +14,9 @@ else:
     SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
 
 # engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={})
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args = {
+    "connect_timeout": 1
+})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -119,3 +122,10 @@ def update_user(db: Session, uid: int, pass_hash: Optional[str],
         user.full_name = full_name
     db.commit()
 
+
+def test_connection(db: Session) -> bool:
+    try:
+        db.query(models.UserModel).first()
+        return True
+    except OperationalError:
+        return False
