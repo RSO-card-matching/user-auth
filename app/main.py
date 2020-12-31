@@ -41,7 +41,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex = r"http:\/\/localhost:.*",
+    allow_origin_regex = r"http.*localhost.*",
     allow_credentials = True,
     allow_methods = ["*"],
     allow_headers = ["*"],
@@ -54,6 +54,7 @@ app.add_middleware(
     allow_methods = ["*"],
     allow_headers = ["*"],
 )
+
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
