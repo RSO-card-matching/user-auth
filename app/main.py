@@ -1,7 +1,7 @@
 # pylint: disable=no-name-in-module
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List, Union
 from os import getenv
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Path, status
@@ -146,11 +146,28 @@ async def read_my_data(current_user: models.User = Depends(get_current_user_from
     return current_user
 
 
-@app.get("/v1/users/{user_id}", response_model = dict)
+@app.get("/v1/users/{user_id}", response_model = Union[models.User, List[Optional[models.User]]])
 async def return_specific_user(current_user: models.User = Depends(get_current_user_from_token),
-    user_id: int = Path(...),
+    user_id: str = Path(...),
     db: Session = Depends(get_db)):
-    return database.get_user_by_uid(db, user_id)
+    try:
+        uid_int = int(user_id)
+        ret = database.get_user_by_uid(db, uid_int)
+        if ret == None:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "User with given ID not found",
+            )
+        return ret
+    except ValueError:
+        try:
+            users = user_id.split(",")
+            return [database.get_user_by_uid(db, int(i)) for i in users]
+        except ValueError:
+            raise HTTPException(
+                status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail = "'user_id' must be either an integer or a list of comma-separated integers",
+            )
 
 
 @app.post("/v1/users", response_model = None)

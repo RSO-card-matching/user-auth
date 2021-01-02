@@ -72,7 +72,7 @@ def get_user_by_uid_sensitive(db: Session, uid: int) -> Optional[models.UserSens
     return None
 
 
-def get_user_by_uid(db: Session, uid: int) -> Optional[models.UserSensitive]:
+def get_user_by_uid(db: Session, uid: int) -> Optional[models.User]:
     user = db.query(models.UserModel).filter(models.UserModel.uid == uid).first()
     if user:
         return models.User(**user.__dict__)
@@ -86,7 +86,7 @@ def get_user_by_username_sensitive(db: Session, username: str) -> Optional[model
     return None
 
 
-def get_user_by_username(db: Session, username: str) -> Optional[models.UserSensitive]:
+def get_user_by_username(db: Session, username: str) -> Optional[models.User]:
     user = db.query(models.UserModel).filter(models.UserModel.username == username).first()
     if user:
         return models.User(**user.__dict__)
