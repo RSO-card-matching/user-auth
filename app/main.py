@@ -15,7 +15,7 @@ from . import models, database
 
 SECRET_KEY = getenv("OAUTH_SIGN_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_DAYS = 365
 
 if (SECRET_KEY == None):
     print("Please define OAuth signing key!")
@@ -127,7 +127,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail = "Incorrect username or password",
             headers = {"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes = ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(days = ACCESS_TOKEN_EXPIRE_DAYS)
     access_token = create_access_token(
         data = {"sub": str(user.uid)},
         expires_delta = access_token_expires
