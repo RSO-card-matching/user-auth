@@ -41,15 +41,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex = r"http.*localhost.*",
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex = r"https:\/\/.*cardmatching.ovh.*",
+    allow_origin_regex = r"(http.*localhost.*|https?:\/\/.*cardmatching.ovh.*)",
     allow_credentials = True,
     allow_methods = ["*"],
     allow_headers = ["*"],
